@@ -335,10 +335,12 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
     slice_ratings = {}
     slice_entries = {}
 
+
     for game_id, game in games:
         game = game.loc[:, ['gameID', 'userID', 'points_share', 'processTime']]
         do_glicko(game, slice_ratings, slice_entries)
 
+    num_players_in_variant = len(game)
     ratings = pandas.DataFrame.from_dict(slice_ratings, orient='index',
                                          columns=['rating', 'confidence', 'volatility'])
     old_ratings_len = len(ratings)
@@ -368,7 +370,7 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
 
     def expected_score_vs_player(ratings, opp_rating, opp_confidence):
         opp_mu = (opp_rating - _INITRAT) / _CONV
-        opp_phi = confidence_med / _CONV
+        opp_phi = opp_confidence / _CONV
         opp_weight = 1 / math.sqrt(1 + 3 * (opp_phi ** 2) / (math.pi ** 2))
         all_mu_diff = -opp_weight * (((ratings['rating'] - _INITRAT) / _CONV) - opp_mu)
         all_mu_diff = all_mu_diff.apply(math.exp)
@@ -386,14 +388,22 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
     ratings['expected_score_vs_mean'] = expected_score_vs_player(ratings, ratings_mean,
                                                                  confidence_mean)
 
+    ratings['expected_score_vs_new'] = expected_score_vs_player(ratings, _INITRAT, _INITCONF)
+
     best_rating = ratings.iloc[0]['rating']
     best_confidence = ratings.iloc[0]['confidence']
     ratings['expected_score_vs_best'] = expected_score_vs_player(ratings, best_rating,
                                                                  best_confidence)
 
+    # ((1 / N) * (7-N)) / 6 = x, solve for N
+    ratings['expected_draw_size_vs_mean'] = num_players_in_variant / ((ratings['expected_score_vs_mean'] * (num_players_in_variant - 1)) + 1)
+    ratings['expected_score_in_mean_game'] = 1 / ratings['expected_draw_size_vs_mean']
+
     ratings = ratings[
         ['username', 'rating_lowerbound', 'rating', 'confidence', 'expected_score_vs_median',
-         'expected_score_vs_mean', 'expected_score_vs_best', 'rank_lb', 'rank_pure']]
+         'expected_score_vs_mean', 'expected_score_vs_best', 'expected_score_vs_new', 'expected_score_in_mean_game', 'rank_lb', 'rank_pure']]
+    ratings.columns = ['name', 'rating_lb', 'rating', 'ratings dev', 'vs_median',
+         'vs_mean', 'vs_best', 'vs_new', 'ppg_vs_mean', 'rank_lb', 'rank_pure']
     return ratings, slice_entries
 
 
@@ -424,7 +434,7 @@ chaos_ratings, chaos_entries = get_ratings_and_entries_for_slice(chaos, placemen
 important_players = ['jmo1121109', 'Restitution', 'bo_sox48', 'Squigs44', 'Carl Tuckerson']
 print("Classic FP top-20:")
 print(tabulate(cfg_ratings.head(20), showindex=True, headers="keys"))
-important = cfg_ratings[cfg_ratings['username'].isin(important_players)]
+important = cfg_ratings[cfg_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
@@ -432,7 +442,7 @@ if len(important) > 0:
 print("Classic FP (DSS) (Non-Live) top-20:")
 print(tabulate(classic_full_dss_nl_ratings.head(20), showindex=True, headers="keys"))
 important = classic_full_dss_nl_ratings[
-    classic_full_dss_nl_ratings['username'].isin(important_players)]
+    classic_full_dss_nl_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
@@ -440,7 +450,7 @@ if len(important) > 0:
 print("Classic FP (SoS) (Non-Live) top-20:")
 print(tabulate(classic_full_sos_nl_ratings.head(20), showindex=True, headers="keys"))
 important = classic_full_sos_nl_ratings[
-    classic_full_sos_nl_ratings['username'].isin(important_players)]
+    classic_full_sos_nl_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
@@ -453,35 +463,35 @@ if len(important) > 0:
 
 print("Classic FP (Live) top-20:")
 print(tabulate(classic_full_live_ratings))
-important = classic_full_live_ratings[classic_full_live_ratings['username'].isin(important_players)]
+important = classic_full_live_ratings[classic_full_live_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB top-20:")
 print(tabulate(gb_ratings.head(20), showindex=True, headers="keys"))
-important = gb_ratings[gb_ratings['username'].isin(important_players)]
+important = gb_ratings[gb_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB (DSS) top-20:")
 print(tabulate(gb_dss_ratings.head(20), showindex=True, headers="keys"))
-important = gb_dss_ratings[gb_dss_ratings['username'].isin(important_players)]
+important = gb_dss_ratings[gb_dss_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB (SoS) top-20:")
 print(tabulate(gb_sos_ratings.head(20), showindex=True, headers="keys"))
-important = gb_sos_ratings[gb_sos_ratings['username'].isin(important_players)]
+important = gb_sos_ratings[gb_sos_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
 
 print("Chaos top-20:")
 print(tabulate(chaos_ratings.head(20), showindex=True, headers="keys"))
-important = chaos_ratings[chaos_ratings['username'].isin(important_players)]
+important = chaos_ratings[chaos_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
