@@ -472,7 +472,7 @@ if len(important) > 0:
     print("Important players in previous category:")
     print(tabulate(important, showindex=True, headers="keys"))
 
-print("Classic GB (SoS) top-20")
+print("Classic GB (SoS) top-20:")
 print(tabulate(gb_sos_ratings.head(20), showindex=True, headers="keys"))
 important = gb_sos_ratings[gb_sos_ratings['username'].isin(important_players)]
 if len(important) > 0:
