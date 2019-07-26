@@ -373,7 +373,7 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
         all_mu_diff = -opp_weight * (((ratings['rating'] - _INITRAT) / _CONV) - opp_mu)
         all_mu_diff = all_mu_diff.apply(math.exp)
         expected_score_vs_opp = 1 / (1 + all_mu_diff)
-        expected_score_vs_opp = (0.5 - expected_score_vs_opp) * 2
+        expected_score_vs_opp = (expected_score_vs_opp - 0.5) * 2
         return expected_score_vs_opp
 
     rating_med = ratings['rating'].median()
