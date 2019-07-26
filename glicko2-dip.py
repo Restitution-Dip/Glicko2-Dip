@@ -8,6 +8,7 @@ import os
 import math
 import time
 from tabulate import tabulate
+from datetime import datetime
 
 _MAXSIZE = 186
 _MAXMULTI = .272
@@ -295,6 +296,13 @@ history_data.loc[:, 'points'] = numpy.where((history_data['status'] == 'Drawn') 
 history_data.loc[:, 'points'] = numpy.where(history_data['status'] == 'Won', 1,
                                             history_data['points'])
 
+most_recent_timestamp = history_data['processTime'].max()
+most_recent_time = datetime.fromtimestamp(most_recent_timestamp)
+print('Most recent game was on {}'.format(most_recent_time))
+now = time.time()
+now = datetime.fromtimestamp(now)
+print('This script is being run on {}'.format(now))
+print('It has been {} since the data source was updated.'.format(now - most_recent_time))
 points_sum = history_data.groupby('gameID').agg({'points': 'sum'})
 points_sum.columns = ['points_sum']
 history_data = history_data.join(points_sum, on='gameID')
@@ -358,68 +366,79 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
     ratings['rank_pure'] = rank_pure
     ratings.index.name = 'userID'
 
-    rating_mean = ratings['rating'].mean()
-    print(rating_mean)
+    def expected_score_vs_player(ratings, opp_rating, opp_confidence):
+        opp_mu = (opp_rating - _INITRAT) / _CONV
+        opp_phi = confidence_med / _CONV
+        opp_weight = 1 / math.sqrt(1 + 3 * (opp_phi ** 2) / (math.pi ** 2))
+        all_mu_diff = -opp_weight * (((ratings['rating'] - _INITRAT) / _CONV) - opp_mu)
+        all_mu_diff = all_mu_diff.apply(math.exp)
+        expected_score_vs_opp = 1 / (1 + all_mu_diff)
+        expected_score_vs_opp = (0.5 - expected_score_vs_opp) * 2
+        return expected_score_vs_opp
+
+    rating_med = ratings['rating'].median()
+    confidence_med = ratings['confidence'].median()
+    ratings['expected_score_vs_median'] = expected_score_vs_player(ratings, rating_med,
+                                                                   confidence_med)
+
+    ratings_mean = ratings['rating'].mean()
     confidence_mean = ratings['confidence'].mean()
-    print(confidence_mean)
+    ratings['expected_score_vs_mean'] = expected_score_vs_player(ratings, ratings_mean,
+                                                                 confidence_mean)
+
     best_rating = ratings.iloc[0]['rating']
     best_confidence = ratings.iloc[0]['confidence']
-    print(best_rating)
-    best_mu = (best_rating - _INITRAT) / _CONV
-    best_phi = best_confidence / _CONV
-    print(best_confidence)
-    best_weight = 1 / math.sqrt(1 + 3 * (best_phi ** 2) / (math.pi ** 2))
-
-    # mu = (p1_rating - _INITRAT) / _CONV
-    # oppMu = (p2_rating - _INITRAT) / _CONV
-    # oppPhi = p2_confidence / _CONV
-
-    # weighted = 1 / math.sqrt(1 + 3 * (oppPhi ** 2) / (math.pi ** 2))
-    # # weighted = 1
-    # expected_score = 1 / (1 + math.exp(-weighted * (mu - oppMu)))
-
-    all_mu = (ratings['rating'] - _INITRAT) / _CONV
-    expected_score_vs_best = 1 / (1 + math.exp(-best_weight * (all_mu - best_mu)))
-    print(expected_score_vs_best)
-    exit(0)
+    ratings['expected_score_vs_best'] = expected_score_vs_player(ratings, best_rating,
+                                                                 best_confidence)
 
     ratings = ratings[
-        ['username', 'rating_lowerbound', 'rating', 'confidence', 'rank_lb', 'rank_pure']]
+        ['username', 'rating_lowerbound', 'rating', 'confidence', 'expected_score_vs_median',
+         'expected_score_vs_mean', 'expected_score_vs_best', 'rank_lb', 'rank_pure']]
     return ratings, slice_entries
 
 
 cfg_ratings, cfg_entries = get_ratings_and_entries_for_slice(classic_fullpress, 60, True,
-                                                             placement_games=10)
+                                                             placement_games=5)
 
 # classic_full_sos_live_ratings, classic_full_sos_live_entries = get_ratings_and_entries_for_slice(
 #     classic_fullpress_sos_live, placement_games=0, activity_filter=365, filter_inactive=False)
 classic_full_sos_nl_ratings, classic_full_sos_nl_entries = get_ratings_and_entries_for_slice(
-    classic_fullpress_sos_nl, placement_games=10)
+    classic_fullpress_sos_nl, placement_games=5)
 
 # classic_full_dss_live_ratings, classic_full_dss_live_entries = get_ratings_and_entries_for_slice(
 #     classic_fullpress_dss_live, placement_games=5)
 classic_full_dss_nl_ratings, classic_full_dss_nl_entries = get_ratings_and_entries_for_slice(
-    classic_fullpress_dss_nl, placement_games=10)
+    classic_fullpress_dss_nl, placement_games=5)
 
 classic_full_live_ratings, classic_full_live_entries = get_ratings_and_entries_for_slice(
-    classic_fullpress_live, placement_games=10)
+    classic_fullpress_live, placement_games=5)
 
-gb_ratings, gb_entries = get_ratings_and_entries_for_slice(classic_gb, placement_games=10)
+gb_ratings, gb_entries = get_ratings_and_entries_for_slice(classic_gb, placement_games=5)
 gb_sos_ratings, gb_sos_entries = get_ratings_and_entries_for_slice(classic_gb_sos,
-                                                                   placement_games=10)
+                                                                   placement_games=5)
 gb_dss_ratings, gb_dss_entries = get_ratings_and_entries_for_slice(classic_gb_dss,
-                                                                   placement_games=10)
+                                                                   placement_games=5)
 
 chaos_ratings, chaos_entries = get_ratings_and_entries_for_slice(chaos, placement_games=0)
 
+important_players = ['jmo1121109', 'Restitution', 'bo_sox48', 'Squigs44', 'Carl Tuckerson']
 print("Classic FP top-20:")
 print(tabulate(cfg_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = cfg_ratings[cfg_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic FP (DSS) (Non-Live) top-20:")
 print(tabulate(classic_full_dss_nl_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = classic_full_dss_nl_ratings[classic_full_dss_nl_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic FP (SoS) (Non-Live) top-20:")
 print(tabulate(classic_full_sos_nl_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = classic_full_sos_nl_ratings[classic_full_sos_nl_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 # print("Classic FP (DSS) (Live) top-20:")
 # print(tabulate(classic_full_dss_live_ratings.head(20), showindex=True, headers="keys"))
@@ -429,18 +448,33 @@ print(tabulate(classic_full_sos_nl_ratings.head(20), showindex=True, headers="ke
 
 print("Classic FP (Live) top-20:")
 print(tabulate(classic_full_live_ratings))
+print("Important players:")
+important = classic_full_live_ratings[classic_full_live_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB top-20:")
 print(tabulate(gb_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = gb_ratings[gb_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB (DSS) top-20:")
 print(tabulate(gb_dss_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = gb_dss_ratings[gb_dss_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Classic GB (SoS) top-20")
 print(tabulate(gb_sos_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = gb_sos_ratings[gb_sos_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 print("Chaos top-20:")
 print(tabulate(chaos_ratings.head(20), showindex=True, headers="keys"))
+print("Important players:")
+important = chaos_ratings[chaos_ratings['username'].isin(important_players)]
+print(tabulate(important, showindex=True, headers="keys"))
 
 end = time.time()
 
