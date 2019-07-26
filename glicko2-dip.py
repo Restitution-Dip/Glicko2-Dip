@@ -402,7 +402,7 @@ def get_ratings_and_entries_for_slice(slice, activity_filter=90, filter_inactive
     ratings = ratings[
         ['username', 'rating_lowerbound', 'rating', 'confidence', 'expected_score_vs_median',
          'expected_score_vs_mean', 'expected_score_vs_best', 'expected_score_vs_new', 'expected_score_in_mean_game', 'rank_lb', 'rank_pure']]
-    ratings.columns = ['name', 'rating_lb', 'rating', 'ratings dev', 'vs_median',
+    ratings.columns = ['name', 'rating_lb', 'rating', 'RD', 'vs_medn',
          'vs_mean', 'vs_best', 'vs_new', 'ppg_vs_mean', 'rank_lb', 'rank_pure']
     return ratings, slice_entries
 
@@ -433,68 +433,68 @@ chaos_ratings, chaos_entries = get_ratings_and_entries_for_slice(chaos, placemen
 
 important_players = ['jmo1121109', 'Restitution', 'bo_sox48', 'Squigs44', 'Carl Tuckerson']
 print("Classic FP top-20:")
-print(tabulate(cfg_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(cfg_ratings.head(20), showindex=False, headers="keys"))
 important = cfg_ratings[cfg_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Classic FP (DSS) (Non-Live) top-20:")
-print(tabulate(classic_full_dss_nl_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(classic_full_dss_nl_ratings.head(20), showindex=False, headers="keys"))
 important = classic_full_dss_nl_ratings[
     classic_full_dss_nl_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Classic FP (SoS) (Non-Live) top-20:")
-print(tabulate(classic_full_sos_nl_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(classic_full_sos_nl_ratings.head(20), showindex=False, headers="keys"))
 important = classic_full_sos_nl_ratings[
     classic_full_sos_nl_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 # print("Classic FP (DSS) (Live) top-20:")
-# print(tabulate(classic_full_dss_live_ratings.head(20), showindex=True, headers="keys"))
+# print(tabulate(classic_full_dss_live_ratings.head(20), showindex=False, headers="keys"))
 #
 # print("Classic FP (SoS) (Live) top-20:")
-# print(tabulate(classic_full_sos_live_ratings.head(20), showindex=True, headers="keys"))
+# print(tabulate(classic_full_sos_live_ratings.head(20), showindex=False, headers="keys"))
 
 print("Classic FP (Live) top-20:")
 print(tabulate(classic_full_live_ratings))
 important = classic_full_live_ratings[classic_full_live_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Classic GB top-20:")
-print(tabulate(gb_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(gb_ratings.head(20), showindex=False, headers="keys"))
 important = gb_ratings[gb_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Classic GB (DSS) top-20:")
-print(tabulate(gb_dss_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(gb_dss_ratings.head(20), showindex=False, headers="keys"))
 important = gb_dss_ratings[gb_dss_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Classic GB (SoS) top-20:")
-print(tabulate(gb_sos_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(gb_sos_ratings.head(20), showindex=False, headers="keys"))
 important = gb_sos_ratings[gb_sos_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 print("Chaos top-20:")
-print(tabulate(chaos_ratings.head(20), showindex=True, headers="keys"))
+print(tabulate(chaos_ratings.head(20), showindex=False, headers="keys"))
 important = chaos_ratings[chaos_ratings['name'].isin(important_players)]
 if len(important) > 0:
     print("Important players in previous category:")
-    print(tabulate(important, showindex=True, headers="keys"))
+    print(tabulate(important, showindex=False, headers="keys"))
 
 end = time.time()
 
